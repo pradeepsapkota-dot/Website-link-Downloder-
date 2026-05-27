@@ -44,7 +44,13 @@ async function startDownload() {
         }
 
         // Open direct URL — browser handles the download
-        window.open(data.download_url, '_blank');
+        const a = document.createElement('a');
+        a.href = data.download_url;
+        a.download = 'download';
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         showStatus('Download started successfully!', 'success');
 
     } catch (e) {
