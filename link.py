@@ -23,6 +23,8 @@ ALLOWED_DOMAINS = [
 ]
 
 BLOCKED_EXTENSIONS = [".exe", ".bat", ".sh", ".php", ".js", ".py"]
+ALLOWED_DIRECT_EXTENSIONS = [".mp4", ".mp3",
+                             ".mkv", ".avi", ".mov", ".wav", ".webm"]
 
 
 def is_safe_url(url):
@@ -30,12 +32,23 @@ def is_safe_url(url):
         parsed = urlparse(url)
         if parsed.scheme not in ("http", "https"):
             return False, "Only http/https links are allowed."
-        domain = parsed.netloc.lower().replace("www.", "")
-        if not any(allowed in domain for allowed in ALLOWED_DOMAINS):
-            return False, f"Domain not supported. Allowed: {', '.join(ALLOWED_DOMAINS)}"
+
         path = parsed.path.lower()
+
+        # Block dangerous extensions
         if any(path.endswith(ext) for ext in BLOCKED_EXTENSIONS):
             return False, "This file type is not allowed."
+
+        domain = parsed.netloc.lower().replace("www.", "")
+
+        # Allow direct media file links from any domain
+        if any(path.endswith(ext) for ext in ALLOWED_DIRECT_EXTENSIONS):
+            return True, "OK"
+
+        # Otherwise must be whitelisted domain
+        if not any(allowed in domain for allowed in ALLOWED_DOMAINS):
+            return False, f"Domain not supported. Allowed: {', '.join(ALLOWED_DOMAINS)}"
+
         return True, "OK"
     except Exception:
         return False, "Invalid URL."
@@ -68,8 +81,12 @@ def get_direct_url(url, quality="best"):
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
-        # Extract URL only, no download
         "skip_download": True,
+        # Add these:
+        "extractor_retries": 3,
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
