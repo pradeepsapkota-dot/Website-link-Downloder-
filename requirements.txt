@@ -1,5 +1,4 @@
 flask
 flask-limiter
-yt-dlp
 requests
 bleach
