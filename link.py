@@ -82,7 +82,6 @@ def get_direct_url(url, quality="best"):
         "no_warnings": True,
         "noplaylist": True,
         "skip_download": True,
-        # Add these:
         "extractor_retries": 3,
         "http_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -91,8 +90,10 @@ def get_direct_url(url, quality="best"):
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
-        # Return the direct stream URL
-        return info.get("url") or info["requested_formats"][0]["url"]
+        formats = info.get("formats") or []
+        if formats:
+            return formats[-1]["url"]
+        return info.get("url", "")
 
 
 @app.route("/")
