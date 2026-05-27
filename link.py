@@ -3,6 +3,8 @@ import requests
 from flask import Flask, request, jsonify, render_template
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import os
+
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
@@ -12,6 +14,10 @@ limiter = Limiter(
     default_limits=["100 per day", "10 per minute"],
     storage_uri="memory://"
 )
+
+RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY")
+# change if different
+RAPIDAPI_HOST = "social-media-downloader-api13.p.rapidapi.com"
 
 
 @app.route("/")
@@ -29,47 +35,50 @@ def download():
     url = bleach.clean(data.get("url", "").strip())
     quality = data.get("quality", "best")
 
-    # Map quality to cobalt format
-    quality_map = {
-        "best": "1080",
-        "1080p": "1080",
-        "720p": "720",
-        "480p": "480",
-        "360p": "360",
-        "mp3": "audio"
-    }
-
-    is_audio = quality == "mp3"
-    video_quality = quality_map.get(quality, "1080")
-
     try:
-        response = requests.post(
-            "https://api.cobalt.tools/",
-            json={
-                "url": url,
-                "videoQuality": video_quality,
-                "downloadMode": "audio" if is_audio else "auto",
-            },
+        response = requests.get(
+            f"https://{RAPIDAPI_HOST}/smvd/get/all",  # same host
+            params={"url": url},
             headers={
-                "Accept": "application/json",
-                "Content-Type": "application/json"
+                "x-rapidapi-key": RAPIDAPI_KEY,
+                "x-rapidapi-host": RAPIDAPI_HOST
             },
             timeout=15
         )
 
         result = response.json()
 
-        # Cobalt returns either 'url' or 'picker' (multiple streams)
-        if result.get("url"):
-            return jsonify({"download_url": result["url"]})
-        elif result.get("picker"):
-            # Return first option from picker
-            return jsonify({"download_url": result["picker"][0]["url"]})
-        else:
-            return jsonify({"error": result.get("error", {}).get("code", "Could not extract link.")}), 500
+        # Audio requested
+        if quality == "mp3":
+            audios = result.get("audios", [])
+            if audios:
+                return jsonify({"download_url": audios[0]["url"]})
+            return jsonify({"error": "No audio found."}), 500
+
+        # Video — pick by quality
+        videos = result.get("videos", [])
+        if not videos:
+            return jsonify({"error": "No video found."}), 500
+
+        # Try to match requested quality
+        quality_map = {
+            "1080p": "1080",
+            "720p": "720",
+            "480p": "480",
+            "360p": "360",
+        }
+        target = quality_map.get(quality)
+
+        if target:
+            for v in videos:
+                if target in v.get("resolution", ""):
+                    return jsonify({"download_url": v["url"]})
+
+        # Fallback to first (best) video
+        return jsonify({"download_url": videos[0]["url"]})
 
     except Exception as e:
-        return jsonify({"error": "Something went wrong. Try again."}), 500
+        return jsonify({"error": "Could not extract download link."}), 500
 
 
 @app.after_request
