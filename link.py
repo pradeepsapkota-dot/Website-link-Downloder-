@@ -37,7 +37,7 @@ def download():
 
     try:
         response = requests.get(
-            f"https://{RAPIDAPI_HOST}/download"
+            f"https://{RAPIDAPI_HOST}/download",
             params={"url": url},
             headers={
                 "x-rapidapi-key": RAPIDAPI_KEY,
