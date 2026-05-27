@@ -1,0 +1,25 @@
+# Virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment variables
+.env
+.env.*
+
+# Editor settings
+.hintrc
+.vscode/
+
+# Dependencies (pip)
+# requirements.txt is KEPT - that's intentional
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Downloads folder (if it's generated/temp)
+downloads/

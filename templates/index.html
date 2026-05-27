@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnyLinkDownloader</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+    <div class="hero">
+        <div class="logo">
+            <div class="logo-icon">&#9875;</div>
+            <div class="logo-text">Any<span>Link</span>Downloader</div>
+        </div>
+        <h1>Download Any Link, Any Platform</h1>
+        <p>The Straw Hat crew's favourite downloader — videos, music, files & more</p>
+        <div class="search-box">
+            <input type="text" id="urlInput" placeholder="Paste your link here..." maxlength="500" />
+            <select id="qualitySelect">
+                <option value="best">Best</option>
+                <option value="1080p">1080p HD</option>
+                <option value="720p">720p</option>
+                <option value="480p">480p</option>
+                <option value="360p">360p</option>
+                <option value="mp3">MP3 Audio</option>
+            </select>
+            <button onclick="startDownload()" id="dlBtn">Download</button>
+        </div>
+        <p class="terms">By using our service you accept our <a href="#">Terms of Service</a> & <a href="#">Privacy
+                Policy</a></p>
+        <div class="badge-row">
+            <div class="badge">
+                <div class="badge-dot"></div> Free forever
+            </div>
+            <div class="badge">
+                <div class="badge-dot"></div> No signup needed
+            </div>
+            <div class="badge">
+                <div class="badge-dot"></div> All formats
+            </div>
+        </div>
+        <p class="status" id="status"></p>
+    </div>
+
+    <div class="luffy-banner">
+        <div class="luffy-art">&#127988;</div>
+        <div class="luffy-text">
+            <h2>I'm gonna be King of the Downloads!</h2>
+            <p>Just like Luffy never gives up, AnyLinkDownloader never stops until your file is saved.</p>
+        </div>
+    </div>
+
+    <div class="sites-section">
+        <div class="section-title">Supported platforms</div>
+        <div class="sites-grid">
+            <div class="site-card">
+                <div class="site-icon yt">YT</div><span class="site-name">YouTube</span>
+            </div>
+            <div class="site-card">
+                <div class="site-icon ig">IG</div><span class="site-name">Instagram</span>
+            </div>
+            <div class="site-card">
+                <div class="site-icon tt">TT</div><span class="site-name">TikTok</span>
+            </div>
+            <div class="site-card">
+                <div class="site-icon tw">TW</div><span class="site-name">Twitter / X</span>
+            </div>
+            <div class="site-card">
+                <div class="site-icon vm">VM</div><span class="site-name">Vimeo</span>
+            </div>
+            <div class="site-card">
+                <div class="site-icon fb">FB</div><span class="site-name">Facebook</span>
+            </div>
+            <div class="site-card">
+                <div class="site-icon sc">SC</div><span class="site-name">SoundCloud</span>
+            </div>
+            <div class="site-card">
+                <div class="site-icon dm">DM</div><span class="site-name">Dailymotion</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="features">
+        <div class="features-inner">
+            <h2>Why AnyLinkDownloader?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">&#9889;</div>
+                    <h3>Lightning fast</h3>
+                    <p>Download at full speed, no throttling or limits.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#127381;</div>
+                    <h3>Any format</h3>
+                    <p>MP4, MP3, PDF, ZIP — we handle everything.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128274;</div>
+                    <h3>No account needed</h3>
+                    <p>Paste, click, download. That's it.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#127760;</div>
+                    <h3>Works everywhere</h3>
+                    <p>Chrome, Firefox, Safari — any browser.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="faq">
+        <h2>Frequently asked questions</h2>
+        <div class="faq-item">
+            <div class="faq-q" onclick="toggleFaq(0)">How do I download a video? <span id="a0">&#9660;</span></div>
+            <div class="faq-a" id="faq0">Paste the video URL into the box above and click Download. The file saves to
+                your device automatically.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q" onclick="toggleFaq(1)">Is it free to use? <span id="a1">&#9660;</span></div>
+            <div class="faq-a" id="faq1">Yes! AnyLinkDownloader is completely free with no hidden fees or subscriptions.
+            </div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q" onclick="toggleFaq(2)">What formats are supported? <span id="a2">&#9660;</span></div>
+            <div class="faq-a" id="faq2">We support MP4, MP3, WEBM, PDF, ZIP, images and many more depending on the
+                source.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q" onclick="toggleFaq(3)">Is there a file size limit? <span id="a3">&#9660;</span></div>
+            <div class="faq-a" id="faq3">Yes, the maximum file size is 500MB per download to keep the service fast for
+                everyone.</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="footer-logo">AnyLinkDownloader</div>
+        <p>Inspired by the Straw Hat Pirates — never give up on your download!</p>
+        <div class="footer-links">
+            <a href="#">Home</a>
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms</a>
+            <a href="#">Contact</a>
+        </div>
+        <p style="margin-top:1rem;">&#169; 2026 AnyLinkDownloader. All rights reserved.</p>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>

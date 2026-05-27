@@ -1,0 +1,8 @@
+yt-dlp
+requests
+tqdm
+selenium
+flask
+gunicorn
+flask-limiter
+bleach
