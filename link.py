@@ -1,9 +1,8 @@
-import os
 import re
 import bleach
 import yt_dlp
 import requests
-from flask import Flask, request, jsonify, send_file, render_template
+from flask import Flask, request, jsonify, render_template, redirect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from urllib.parse import urlparse
@@ -17,18 +16,14 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
-DOWNLOAD_FOLDER = "downloads"
-os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
-
-# ── Allowed domains (whitelist) ──────────────────────
 ALLOWED_DOMAINS = [
     "youtube.com", "youtu.be", "vimeo.com", "dailymotion.com",
     "twitch.tv", "twitter.com", "x.com", "instagram.com",
     "tiktok.com", "soundcloud.com", "facebook.com", "reddit.com"
 ]
 
-# ── Blocked file extensions ──────────────────────────
 BLOCKED_EXTENSIONS = [".exe", ".bat", ".sh", ".php", ".js", ".py"]
+
 
 def is_safe_url(url):
     try:
@@ -45,12 +40,20 @@ def is_safe_url(url):
     except Exception:
         return False, "Invalid URL."
 
-def sanitize_filename(filename):
-    filename = re.sub(r'[^\w\s\-.]', '', filename)
-    filename = filename[:100]
-    return filename or "download"
 
-def download_with_ytdlp(url, quality="best"):
+MEDIA_DOMAINS = [
+    "youtube.com", "youtu.be", "vimeo.com", "dailymotion.com",
+    "twitch.tv", "twitter.com", "x.com", "instagram.com",
+    "tiktok.com", "soundcloud.com"
+]
+
+
+def is_media_site(url):
+    parsed = urlparse(url)
+    return any(domain in parsed.netloc for domain in MEDIA_DOMAINS)
+
+
+def get_direct_url(url, quality="best"):
     format_map = {
         "best":  "bestvideo+bestaudio/best",
         "1080p": "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
@@ -60,67 +63,26 @@ def download_with_ytdlp(url, quality="best"):
         "mp3":   "bestaudio/best",
     }
 
-    selected_format = format_map.get(quality, "bestvideo+bestaudio/best")
-
     ydl_opts = {
-        "outtmpl": os.path.join(DOWNLOAD_FOLDER, "%(title)s.%(ext)s"),
-        "format": selected_format,
-        "noplaylist": True,
+        "format": format_map.get(quality, "best"),
         "quiet": True,
         "no_warnings": True,
+        "noplaylist": True,
+        # Extract URL only, no download
+        "skip_download": True,
     }
 
-    if quality == "mp3":
-        ydl_opts["postprocessors"] = [{
-            "key": "FFmpegExtractAudio",
-            "preferredcodec": "mp3",
-            "preferredquality": "192",
-        }]
-
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        filename = ydl.prepare_filename(info)
-        if quality == "mp3":
-            filename = os.path.splitext(filename)[0] + ".mp3"
-        return filename
+        info = ydl.extract_info(url, download=False)
+        # Return the direct stream URL
+        return info.get("url") or info["requested_formats"][0]["url"]
 
-def download_file(url):
-    parsed = urlparse(url)
-    filename = sanitize_filename(os.path.basename(parsed.path)) or "file"
-    save_path = os.path.join(DOWNLOAD_FOLDER, filename)
-    headers = {"User-Agent": "Mozilla/5.0"}
-    response = requests.get(url, headers=headers, stream=True, timeout=30)
-    response.raise_for_status()
 
-    content_length = int(response.headers.get("content-length", 0))
-    if content_length > 500 * 1024 * 1024:
-        raise ValueError("File too large (max 500MB).")
-
-    with open(save_path, "wb") as f:
-        downloaded = 0
-        for chunk in response.iter_content(chunk_size=8192):
-            f.write(chunk)
-            downloaded += len(chunk)
-            if downloaded > 500 * 1024 * 1024:
-                raise ValueError("File too large (max 500MB).")
-    return save_path
-
-MEDIA_DOMAINS = [
-    "youtube.com", "youtu.be", "vimeo.com", "dailymotion.com",
-    "twitch.tv", "twitter.com", "x.com", "instagram.com",
-    "tiktok.com", "soundcloud.com"
-]
-
-def is_media_site(url):
-    parsed = urlparse(url)
-    return any(domain in parsed.netloc for domain in MEDIA_DOMAINS)
-
-# ── THIS WAS MISSING — Home route ────────────────────
 @app.route("/")
 def home():
     return render_template("index.html")
 
-# ── Download route ────────────────────────────────────
+
 @app.route("/download", methods=["POST"])
 @limiter.limit("10 per minute")
 def download():
@@ -141,16 +103,17 @@ def download():
 
     try:
         if is_media_site(url):
-            filepath = download_with_ytdlp(url, quality)
+            direct_url = get_direct_url(url, quality)
+            # Return the direct URL to the frontend
+            # Browser downloads it directly from the source
+            return jsonify({"download_url": direct_url})
         else:
-            filepath = download_file(url)
-        return send_file(filepath, as_attachment=True)
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+            # For non-media sites, just return the URL as-is
+            return jsonify({"download_url": url})
     except Exception as e:
-        return jsonify({"error": "Download failed. Please try another link."}), 500
+        return jsonify({"error": "Could not extract download link. Try another URL."}), 500
 
-# ── Security headers ──────────────────────────────────
+
 @app.after_request
 def add_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -159,6 +122,7 @@ def add_security_headers(response):
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';"
     return response
+
 
 if __name__ == "__main__":
     app.run(debug=False)

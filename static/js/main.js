@@ -36,17 +36,15 @@ async function startDownload() {
             body: JSON.stringify({ url, quality })
         });
 
-        if (!response.ok) {
-            const err = await response.json();
-            showStatus('Error: ' + err.error, 'error');
+        const data = await response.json();
+
+        if (!response.ok || data.error) {
+            showStatus('Error: ' + data.error, 'error');
             return;
         }
 
-        const blob = await response.blob();
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'download';
-        a.click();
+        // Open direct URL — browser handles the download
+        window.open(data.download_url, '_blank');
         showStatus('Download started successfully!', 'success');
 
     } catch (e) {
