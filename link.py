@@ -47,6 +47,7 @@ def download():
         )
 
         result = response.json()
+
         return jsonify({"debug": result})
 
         # Audio requested
