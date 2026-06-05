@@ -52,7 +52,10 @@ def download():
                 timeout=15
             )
             result = response.json()
-            return jsonify({"debug": result})  # debug first
+            direct_url = result.get("direct_media_url")
+            if direct_url:
+                return jsonify({"download_url": direct_url})
+            return jsonify({"error": "Could not extract Facebook video."}), 500
 
         # All other platforms
         response = requests.get(
