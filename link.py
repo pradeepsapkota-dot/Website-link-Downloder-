@@ -17,9 +17,11 @@ limiter = Limiter(
 RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY")
 RAPIDAPI_HOST = "social-media-downloader-api13.p.rapidapi.com"
 
+
 @app.route("/")
 def home():
     return render_template("index.html")
+
 
 @app.route("/download", methods=["POST"])
 @limiter.limit("10 per minute")
@@ -49,40 +51,33 @@ def download():
         # MP3 request — return best audio
         if quality == "mp3":
             if audios:
-                # prefer m4a over webm
                 for a in audios:
                     if a.get("ext") == "m4a":
                         return jsonify({"download_url": a["url"]})
                 return jsonify({"download_url": audios[0]["url"]})
             return jsonify({"error": "No audio found."}), 500
 
-        # Video request — find format 18 first (combined video+audio mp4)
+        # YouTube — format 18 is always combined audio+video
         for v in videos:
             if v.get("format_id") == "18":
                 return jsonify({"download_url": v["url"]})
 
-        # If no format 18, pick by quality (video only, but better than nothing)
-        quality_map = {
-            "1080p": "1920x1080",
-            "720p": "1280x720",
-            "480p": "854x480",
-            "360p": "640x360",
-        }
-        target = quality_map.get(quality)
-        if target:
-            for v in videos:
-                if v.get("resolution") == target and v.get("ext") == "mp4":
-                    return jsonify({"download_url": v["url"]})
+        # Other platforms — pick largest mp4 (most likely has audio)
+        mp4_videos = [v for v in videos if v.get("ext") == "mp4"]
+        if mp4_videos:
+            best = max(mp4_videos, key=lambda v: v.get("filesize", 0))
+            return jsonify({"download_url": best["url"]})
 
-        # Fallback — last mp4
-        for v in reversed(videos):
-            if v.get("ext") == "mp4":
-                return jsonify({"download_url": v["url"]})
+        # Fallback — largest file of any format
+        if videos:
+            best = max(videos, key=lambda v: v.get("filesize", 0))
+            return jsonify({"download_url": best["url"]})
 
         return jsonify({"error": "No video found."}), 500
 
     except Exception as e:
         return jsonify({"error": "Could not extract download link."}), 500
+
 
 @app.after_request
 def add_security_headers(response):
@@ -92,6 +87,7 @@ def add_security_headers(response):
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';"
     return response
+
 
 if __name__ == "__main__":
     app.run(debug=False)
