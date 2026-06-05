@@ -43,14 +43,13 @@ async function startDownload() {
             return;
         }
 
-        // Open direct URL — browser handles the download
-        const a = document.createElement('a');
-        a.href = data.download_url;
-        a.download = 'download';
-        a.target = '_blank';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        if (!data.download_url) {
+            showStatus('Error: No download URL returned.', 'error');
+            return;
+        }
+
+        // Open in new tab — browser handles download
+        window.open(data.download_url, '_blank');
         showStatus('Download started successfully!', 'success');
 
     } catch (e) {
@@ -59,7 +58,6 @@ async function startDownload() {
         btn.disabled = false;
     }
 }
-
 // ── Allow pressing Enter to download ───────────────
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('urlInput').addEventListener('keydown', (e) => {
