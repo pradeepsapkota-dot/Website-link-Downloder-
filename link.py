@@ -62,15 +62,15 @@ def download():
             if v.get("format_id") == "18":
                 return jsonify({"download_url": v["url"]})
 
-        # Other platforms — pick largest mp4 (most likely has audio)
+        # Other platforms — pick largest mp4 (filesize may be None, handle it)
         mp4_videos = [v for v in videos if v.get("ext") == "mp4"]
         if mp4_videos:
-            best = max(mp4_videos, key=lambda v: v.get("filesize", 0))
+            best = max(mp4_videos, key=lambda v: v.get("filesize") or 0)
             return jsonify({"download_url": best["url"]})
 
-        # Fallback — largest file of any format
+        # Fallback — any format
         if videos:
-            best = max(videos, key=lambda v: v.get("filesize", 0))
+            best = max(videos, key=lambda v: v.get("filesize") or 0)
             return jsonify({"download_url": best["url"]})
 
         return jsonify({"error": "No video found."}), 500
