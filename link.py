@@ -76,7 +76,7 @@ def download():
         return jsonify({"error": "No video found."}), 500
 
     except Exception as e:
-        return jsonify({"error": "Could not extract download link."}), 500
+        return jsonify({"error": str(e)}), 500
 
 
 @app.after_request
