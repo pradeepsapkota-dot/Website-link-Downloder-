@@ -16,6 +16,11 @@ limiter = Limiter(
 
 RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY")
 RAPIDAPI_HOST = "social-media-downloader-api13.p.rapidapi.com"
+FB_HOST = "facebook-media-downloader1.p.rapidapi.com"
+
+
+def is_facebook(url):
+    return "facebook.com" in url or "fb.com" in url
 
 
 @app.route("/")
@@ -34,6 +39,22 @@ def download():
     quality = data.get("quality", "best")
 
     try:
+        # Facebook — use dedicated API
+        if is_facebook(url):
+            response = requests.post(
+                f"https://{FB_HOST}/get_media",
+                json={"url": url},
+                headers={
+                    "x-rapidapi-key": RAPIDAPI_KEY,
+                    "x-rapidapi-host": FB_HOST,
+                    "Content-Type": "application/json"
+                },
+                timeout=15
+            )
+            result = response.json()
+            return jsonify({"debug": result})  # debug first
+
+        # All other platforms
         response = requests.get(
             f"https://{RAPIDAPI_HOST}/download",
             params={"url": url},
@@ -45,11 +66,10 @@ def download():
         )
 
         result = response.json()
-        return jsonify({"debug": result})
         videos = result.get("videos", [])
         audios = result.get("audios", [])
 
-        # MP3 request — return best audio
+        # MP3 request
         if quality == "mp3":
             if audios:
                 for a in audios:
@@ -58,18 +78,17 @@ def download():
                 return jsonify({"download_url": audios[0]["url"]})
             return jsonify({"error": "No audio found."}), 500
 
-        # YouTube — format 18 is always combined audio+video
+        # YouTube format 18 = combined audio+video
         for v in videos:
             if v.get("format_id") == "18":
                 return jsonify({"download_url": v["url"]})
 
-        # Other platforms — pick largest mp4 (filesize may be None, handle it)
+        # Other platforms — largest mp4
         mp4_videos = [v for v in videos if v.get("ext") == "mp4"]
         if mp4_videos:
             best = max(mp4_videos, key=lambda v: v.get("filesize") or 0)
             return jsonify({"download_url": best["url"]})
 
-        # Fallback — any format
         if videos:
             best = max(videos, key=lambda v: v.get("filesize") or 0)
             return jsonify({"download_url": best["url"]})
