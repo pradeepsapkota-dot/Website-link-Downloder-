@@ -45,6 +45,7 @@ def download():
         )
 
         result = response.json()
+        return jsonify({"debug": result})
         videos = result.get("videos", [])
         audios = result.get("audios", [])
 
